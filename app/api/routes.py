@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Header, Body, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
@@ -8,6 +9,11 @@ from app.api.schemas import *
 from app.services.ingest import start_upload, receive_chunk, complete_upload
 
 router = APIRouter()
+
+def _parse_dt(s: str) -> datetime:
+    if s.endswith("Z"):
+        s = s.replace("Z", "+00:00")
+    return datetime.fromisoformat(s).astimezone(timezone.utc)
 
 @router.post("/ingest/start", response_model=StartOut)
 async def ingest_start(payload: StartIn, db: AsyncSession = Depends(get_session)):
@@ -57,6 +63,8 @@ async def list_segments(audio_id: uuid.UUID, limit: int = 50, offset: int = 0, d
 
 @router.get("/stats", response_model=StatsOut)
 async def stats(from_: str, to: str, db: AsyncSession = Depends(get_session)):
+    f_dt = _parse_dt(from_)
+    t_dt = _parse_dt(to)
     q = text("""
         select date_trunc('hour', created_at) as hour,
                sum((end_ms - start_ms)/1000.0) as voice_duration_s,
@@ -67,6 +75,6 @@ async def stats(from_: str, to: str, db: AsyncSession = Depends(get_session)):
         group by 1
         order by 1
     """)
-    rows = (await db.execute(q, {"f": from_, "t": to})).all()
+    rows = (await db.execute(q, {"f": f_dt, "t": t_dt})).all()
     buckets = [{"hour": r.hour.replace(minute=0, second=0, microsecond=0).isoformat().replace("+00:00","Z"), "voice_duration_s": float(r.voice_duration_s or 0.0), "p95_rms": float(r.p95_rms) if r.p95_rms is not None else None, "segments": int(r.segments)} for r in rows]
     return {"buckets": buckets}

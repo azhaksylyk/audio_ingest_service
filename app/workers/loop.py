@@ -7,17 +7,38 @@ from app.workers.analyze import analyze_audio
 async def poll():
     while True:
         async with AsyncSessionLocal() as db:
-            await db.execute(text("begin"))
-            row = await db.execute(text("select id, upload_id, payload from jobs where type='analyze' and status='queued' for update skip locked limit 1"))
-            r = row.first()
-            if r:
-                await db.execute(update(models.Job).where(models.Job.id==r.id).values(status="in_progress", attempts=models.Job.attempts+1))
-                await db.commit()
-                audio_id = uuid.UUID(r.payload["audio_id"])
-                af = (await db.execute(select(models.AudioFile).where(models.AudioFile.id==audio_id))).scalar_one()
-                await analyze_audio(db, r.id, r.upload_id, audio_id, af.path)
-            else:
-                await db.rollback()
+            job_row = None
+            # Explicitly start and commit each iteration
+            async with db.begin():
+                res = await db.execute(
+                    text("""
+                        SELECT id, upload_id, payload
+                        FROM jobs
+                        WHERE type='analyze' AND status='queued'
+                        FOR UPDATE SKIP LOCKED
+                        LIMIT 1
+                    """)
+                )
+                job_row = res.first()
+                if job_row:
+                    await db.execute(
+                        update(models.Job)
+                        .where(models.Job.id == job_row.id)
+                        .values(status="in_progress", attempts=models.Job.attempts + 1)
+                    )
+            # <-- db.begin() auto-commits here, so no open transaction
+
+            if job_row:
+                try:
+                    audio_id = uuid.UUID(job_row.payload["audio_id"])
+                    af = (
+                        await db.execute(
+                            select(models.AudioFile).where(models.AudioFile.id == audio_id)
+                        )
+                    ).scalar_one()
+                    await analyze_audio(db, job_row.id, job_row.upload_id, audio_id, af.path)
+                except Exception as e:
+                    print(f"[Worker] Error processing job {job_row.id}: {e}")
         await asyncio.sleep(1)
 
 task = None
