@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+.env
+
+# Poetry
+poetry.lock
+
+# Tests & coverage
+.htmlcov/
+.coverage*
+.pytest_cache/
+test/__pycache__/
+
+# macOS
+.DS_Store
+
+# Docker / runtime
+/data/
+storage/
+pgdata/
+*.log
+out.wav
+test.wav
+
+# IDE
+.vscode/
+.idea/
