@@ -24,8 +24,6 @@ test/__pycache__/
 storage/
 pgdata/
 *.log
-out.wav
-test.wav
 
 # IDE
 .vscode/
