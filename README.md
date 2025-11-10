@@ -32,11 +32,6 @@ Uvicorn running on http://0.0.0.0:8000
 http://localhost:8000/docs
 
 ## Manual Test Example
-```bash
-
-```
-
-## Run tests
 
 ### Step 1. Get file size
 ```bash
@@ -109,7 +104,7 @@ docker cp $(docker-compose ps -q app):/data/storage/${AUDIO_ID}.wav ./out.wav
 ```
 
 
-## Run Automatic test
+## Automatic Test Example
 ```bash
 docker cp $(docker-compose ps -q app):/data/storage/${AUDIO_ID}.wav ./out.wav
 ```
