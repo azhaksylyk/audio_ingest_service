@@ -79,7 +79,7 @@ Copy the UUID (without .wav).
 ```bash
 AUDIO_ID=<paste_audio_id_here>
 ```
-exmaple: AUDIO_ID=8858d321-604a-4923-993c-e20f862985c7
+example: AUDIO_ID=8858d321-604a-4923-993c-e20f862985c7
 
 ### Step 8. Fetch metadata
 ```bash
